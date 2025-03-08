@@ -35,7 +35,7 @@ const LoginScreen = () => {
     }
   
     try {
-      const response = await fetch("http://192.168.10.135:5000/login", { // Replace with your machine's IP
+      const response = await fetch("http://192.168.32.135:5000/login", { // Replace with your machine's IP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase(), password }),
@@ -94,8 +94,9 @@ const LoginScreen = () => {
             onChangeText={setPassword}
           />
           <TouchableOpacity onPress={() => setSecureEntry((prev) => !prev)}>
-            <SimpleLineIcons name={secureEntry ? "eye" : "eye-off"} size={20} color={colors.secondary} />
-          </TouchableOpacity>
+  <Ionicons name={secureEntry ? "eye-off" : "eye"} size={20} color={colors.secondary} />
+</TouchableOpacity>
+
         </View>
 
         <TouchableOpacity>

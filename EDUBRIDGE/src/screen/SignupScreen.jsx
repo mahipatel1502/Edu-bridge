@@ -79,6 +79,12 @@ const SignupScreen = () => {
       return;
     }
   
+    const collegeDomain = "@charusat.edu.in"; // Change this to your college's domain
+    if (!email.endsWith(collegeDomain)) {
+      alert("Only college students can sign up with a valid college email.");
+      return;
+    }
+  
     const userData = {
       name,
       email,
@@ -94,10 +100,10 @@ const SignupScreen = () => {
     };
   
     try {
-      const response = await fetch("http://192.168.10.135:5000/signup", {
+      const response = await fetch("http://192.168.32.135:5000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),  // Send all user data
+        body: JSON.stringify(userData),
       });
   
       const data = await response.json();
@@ -305,8 +311,9 @@ const SignupScreen = () => {
               onChangeText={setPassword}
             />
             <TouchableOpacity onPress={() => setSecureEntry((prev) => !prev)}>
-              <SimpleLineIcons name={secureEntry ? "eye" : "eye-off"} size={20} color={colors.secondary} />
+              <Ionicons name={secureEntry ? "eye-off" : "eye"} size={20} color={colors.secondary} />
             </TouchableOpacity>
+
           </View>
           <View style={styles.inputContainer}>
             <SimpleLineIcons name={"lock"} size={30} color={colors.secondary} />
@@ -319,7 +326,7 @@ const SignupScreen = () => {
               onChangeText={setConfirmPassword}
             />
             <TouchableOpacity onPress={() => setSecureEntry((prev) => !prev)}>
-              <SimpleLineIcons name={secureEntry ? "eye" : "eye-off"} size={20} color={colors.secondary} />
+              <Ionicons name={secureEntry ? "eye-off" : "eye"} size={20} color={colors.secondary} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>

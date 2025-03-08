@@ -1,38 +1,63 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
+import { View, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+
+import Icon from "react-native-vector-icons/Ionicons";
+import { StyleSheet } from "react-native";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
+// Import screen components
+import Homepagee from "./Homepagee";
+import SearchScreen from "./SearchScreen";
+import ChatboxScreen from "./ChatboxScreen";
+import NotificationsScreen from "./NotificationsScreen";
+import AccountScreen from "./AccountScreen";
+import * as RNLocalize from "react-native-localize";
 
-const HomeScreen = () => {
-  const navigation = useNavigation();
+const locale = RNLocalize.getLocales()[0].languageTag;
+console.log(locale); // Example: "en-US"
+const Tab = createBottomTabNavigator();
 
-  const handleLogout = () => {
-    navigation.replace("LOGIN"); // Redirect to Login after logout
-  };
-
+const Homepage = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome to Home Screen! </Text>
+    
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ color, size }) => {
+            let iconName;
 
-      {/* Boxes for DEPSTAR and CSPIT */}
-      <View style={styles.boxContainer}>
-        <TouchableOpacity style={styles.box}>
-          <Text style={styles.boxText}>DEPSTAR</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.box}>
-          <Text style={styles.boxText}>CSPIT</Text>
-        </TouchableOpacity>
-      </View>
+            if (route.name === "Home") {
+              iconName = "home-outline";
+            } else if (route.name === "Search") {
+              iconName = "search-outline";
+            } else if (route.name === "Chatbox") {
+              iconName = "chatbubble-outline";
+            } else if (route.name === "Notifications") {
+              iconName = "notifications-outline";
+            } else if (route.name === "Account") {
+              iconName = "person-outline";
+            }
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
+            return <Icon name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: "#6200EE",
+          tabBarInactiveTintColor: "gray",
+        })}
+      >
+        <Tab.Screen name="Home" component={Homepagee} />
+        <Tab.Screen name="Search" component={SearchScreen} />
+        <Tab.Screen name="Chatbox" component={ChatboxScreen} />
+        <Tab.Screen name="Notifications" component={NotificationsScreen} />
+        <Tab.Screen name="Account" component={AccountScreen} />
+      </Tab.Navigator>
+    
   );
 };
 
-export default HomeScreen;
+export default Homepage;
+
 
 const styles = StyleSheet.create({
   container: {
