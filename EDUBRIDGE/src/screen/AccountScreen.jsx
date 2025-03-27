@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Store user session
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { colors } from "../utils/colors";
@@ -14,7 +14,7 @@ const AccountScreen = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
+        const token = await AsyncStorage.getItem("token"); // Get stored JWT token
 
         if (!token) {
           Alert.alert("Session Expired", "Please log in again.");
@@ -22,7 +22,8 @@ const AccountScreen = () => {
           return;
         }
 
-        const response = await fetch("http://192.168.31.34:5000/user", {
+        // Fetch user data from the backend
+        const response = await fetch("http://192.168.13.200:5000/users", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -36,7 +37,6 @@ const AccountScreen = () => {
           throw new Error(result.error || "Failed to fetch user data.");
         }
 
-        console.log("Fetched User Data:", result); // Debugging
         setUserData(result);
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -51,8 +51,8 @@ const AccountScreen = () => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("token"); 
-      navigation.replace("LOGIN"); 
+      await AsyncStorage.removeItem("token"); // Clear user session
+      navigation.replace("LOGIN"); // Navigate to login screen
     } catch (error) {
       Alert.alert("Error", "Failed to logout. Please try again.");
     }
@@ -77,6 +77,7 @@ const AccountScreen = () => {
 
   return (
     <View style={styles.container}>
+
       <Ionicons name="person-circle-outline" size={100} color={colors.primary} style={styles.icon} />
 
       <Text style={styles.userName}>{userData.name}</Text>
@@ -85,43 +86,30 @@ const AccountScreen = () => {
       <View style={styles.detailsContainer}>
         {userData.userType === "Student" && (
           <>
-            <Text style={styles.detailText}>Branch: {userData.branch || "N/A"}</Text>
-            <Text style={styles.detailText}>Semester: {userData.semester || "N/A"}</Text>
+            <Text style={styles.detailText}>Branch: {userData.branch}</Text>
+            <Text style={styles.detailText}>Semester: {userData.semester}</Text>
           </>
         )}
 
         {userData.userType === "Mentor" && (
           <>
-            <Text style={styles.detailText}>Department: {userData.department || "N/A"}</Text>
-            <Text style={styles.detailText}>Designation: {userData.designation || "N/A"}</Text>
-            <Text style={styles.detailText}>Specialization: {userData.specialization || "N/A"}</Text>
+            <Text style={styles.detailText}>Department: {userData.department}</Text>
+            <Text style={styles.detailText}>Designation: {userData.designation}</Text>
+            <Text style={styles.detailText}>Specialization: {userData.specialization}</Text>
           </>
         )}
 
         {userData.userType === "Alumni" && (
           <>
-            <Text style={styles.detailText}>Graduation Year: {userData.graduationYear || "N/A"}</Text>
-            <Text style={styles.detailText}>Current Job: {userData.currentJob || "N/A"}</Text>
-            <Text style={styles.detailText}>Specialization: {userData.specialization || "N/A"}</Text>
+            <Text style={styles.detailText}>Graduation Year: {userData.graduationYear}</Text>
+            <Text style={styles.detailText}>Current Job: {userData.currentJob}</Text>
+            <Text style={styles.detailText}>Specialization: {userData.specialization}</Text>
           </>
         )}
       </View>
-
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() =>
-          navigation.navigate("EditProfile", {
-            userData,
-            onProfileUpdate: (updatedUser) => {
-              console.log("Updated user received:", updatedUser); // Debugging
-              setUserData((prev) => ({ ...prev, ...updatedUser })); // Merge old and new data
-            },
-          })
-        }
-      >
-        <Text style={styles.editButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
-
+      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate("EditProfile", { userData })}>
+  <Text style={styles.editButtonText}>Edit Profile</Text>
+</TouchableOpacity>
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
@@ -200,5 +188,5 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 18,
     fontFamily: fonts.SemiBold,
-  },
+  },  
 });

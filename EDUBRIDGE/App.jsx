@@ -12,6 +12,10 @@ import otpScreen from "./src/screen/OtpScreen";
 import SearchScreen from "./src/screen/SearchScreen";
 import ProfileScreen from "./src/screen/ProfileScreen"; 
 import ResetPasswordScreen from "./src/screen/ResetPasswordScreen";
+import Role from "./src/screen/Role"
+import Mentor from "./src/screen/Mentor"
+import CurrentStudent from "./src/screen/CurrentStudent";
+import Alumni from "./src/screen/Alumni";
 const Stack = createNativeStackNavigator();
 
 const App = () => {
@@ -32,7 +36,11 @@ const App = () => {
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ResetPasswordScreen" component={ResetPasswordScreen} />
-      
+        <Stack.Screen name="Role" component={Role} />
+        <Stack.Screen name="CurrentStudent" component={CurrentStudent} />
+        <Stack.Screen name="Alumni" component={Alumni} />
+        <Stack.Screen name="Mentor" component={Mentor} />
+
 
       </Stack.Navigator>
     </NavigationContainer>
