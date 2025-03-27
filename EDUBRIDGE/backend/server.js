@@ -3,10 +3,8 @@ const cors = require("cors");
 const admin = require("firebase-admin");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-
-
-// Initialize Firebase Admin SDK
-const serviceAccount = require("./serviceAccountKey.json");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 
 const authenticateToken = (req, res, next) => {
@@ -25,6 +23,8 @@ const authenticateToken = (req, res, next) => {
     return res.status(403).json({ error: "Invalid or Expired Token" });
   }
 };
+// Initialize Firebase Admin SDK
+const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -65,19 +65,6 @@ app.post("/signup", async (req, res) => {
     if (!name || !email || !password || !userType) {
       return res.status(400).json({ error: "All fields are required." });
     }
-
-    // Create user in Firebase Authentication
-    // Restrict email domain to only college students
-    const allowedDomain = "@charusat.edu.in"; // Change this to your college domain
-    if (!email.endsWith(allowedDomain)) {
-      return res.status(400).json({ error: "Only college students can sign up." });
-    }
-
-    // Check if email exists in Firestore "approved_students" collection
-    const approvedStudentRef = db.collection("approved_students").doc(email);
-    const approvedStudentDoc = await approvedStudentRef.get();
-
-   
 
     // Create user in Firebase Authentication
     const userRecord = await auth.createUser({
@@ -187,7 +174,14 @@ app.get("/user", async (req, res) => {
     res.status(401).json({ error: "Invalid or expired token." });
   }
 });
-
+// Configure Nodemailer (for sending OTP emails)
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "khyatithakkar723@gmail.com",// Your email
+    pass: "ranylknsthydwise", // Your email password (or app password)
+  },
+});
 
 app.put("/user/update", authenticateToken, async (req, res) => {
   try {
@@ -233,6 +227,222 @@ app.put("/user/update", authenticateToken, async (req, res) => {
   }
 });
 
+
+// -------------------------- Forgot Password Flow -------------------------- //
+
+/**
+ * Check if Email is Registered
+ */
+
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(require("./firebase-adminsdk.json")),
+  });
+}
+app.post("/check-email", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const usersRef = db.collection("users");
+    const snapshot = await usersRef.where("email", "==", email).get();
+
+    if (snapshot.empty) {
+      return res.json({ registered: false, message: "Email is not registered." });
+    }
+
+    res.json({ registered: true, message: "Email is registered." });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+
+/**
+ * Send OTP for Password Reset
+ */
+app.post("/send-otp", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+
+  try {
+    const userRecord = await auth.getUserByEmail(email);
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
+
+    // Store OTP in Firestore
+    await db.collection("otp").doc(email).set({ otp, expiresAt });
+
+    const storedOtp = await db.collection("otp").doc(email).get();
+    if (!storedOtp.exists) {
+      return res.status(500).json({ error: "OTP storage failed." });
+    }
+
+    // Send OTP via Email
+    await transporter.sendMail({
+      from: "khyatithakkar723@gmail.com",
+      to: email,
+      subject: "Password Reset OTP",
+      text: `Your OTP for password reset is: ${otp}. It will expire in 5 minutes.`,
+
+    }, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        return res.status(500).json({ error: "Failed to send OTP email." });
+      } else {
+        console.log("Email sent: " + info.response);
+        return res.json({ message: "OTP sent successfully." });
+      }
+    });
+
+  } catch (error) {
+    console.error("Error sending OTP:", error);
+    res.status(500).json({ error: "Failed to send OTP. Ensure email is registered." });
+  }
+});
+
+/**
+ * Verify OTP and Reset Password
+ */
+
+app.post("/verify-password", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: "Email and OTP are required." });
+    }
+
+    // Retrieve OTP from Firestore
+    const otpDoc = await db.collection("otp").doc(email).get();
+
+    if (!otpDoc.exists || otpDoc.data().otp !== otp) {
+      return res.status(400).json({ error: "Invalid OTP or OTP expired." });
+    }
+
+    res.status(200).json({ success: true, message: "OTP verified successfully" });
+
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
+    res.status(500).json({ error: "Failed to verify OTP." });
+  }
+});
+
+app.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email and new password are required." });
+    }
+
+    // Retrieve user from Firestore
+    const usersRef = db.collection("users").where("email", "==", email);
+    const userSnapshot = await usersRef.get();
+
+    if (userSnapshot.empty) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const userRecord = await auth.getUserByEmail(email);
+
+    // Update password in Firebase Authentication
+    await auth.updateUser(userRecord.uid, { password: newPassword });
+
+    // Invalidate all existing tokens by revoking refresh tokens
+    await auth.revokeRefreshTokens(userRecord.uid);
+
+    // Optional: Remove any stored OTP after successful reset
+    await db.collection("otp").doc(email).delete().catch(() => {});
+
+    res.json({ success: true, message: "Password reset successful. You must log in again with your new password." });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({ error: "Failed to reset password. Try again later." });
+  }
+});
+
+
+app.get("/search", async (req, res) => {
+  try {
+    const { field } = req.query;
+    if (!field) {
+      return res.status(400).json({ error: "Field is required." });
+    }
+
+    const mentorsRef = db.collection("users").where("userType", "==", "Mentor");
+    const alumniRef = db.collection("users").where("userType", "==", "Alumni");
+
+    // Perform searches using Firestore where() and filter by specialization/department
+    const [mentorsSnap, alumniSnap] = await Promise.all([
+      mentorsRef.get(),
+      alumniRef.get(),
+    ]);
+
+    const mentors = mentorsSnap.docs
+      .map((doc) => doc.data())
+      .filter(
+        (user) =>
+          user.specialization?.toLowerCase().includes(field.toLowerCase()) ||
+          user.department?.toLowerCase().includes(field.toLowerCase())
+      );
+
+    const alumni = alumniSnap.docs
+      .map((doc) => doc.data())
+      .filter((user) =>
+        user.specialization?.toLowerCase().includes(field.toLowerCase())
+      );
+
+    const results = [...mentors, ...alumni];
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "No mentors or alumni found." });
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error("Search Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.post("/follow", async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  if (!senderId || !receiverId) {
+    return res.status(400).json({ error: "Sender and Receiver IDs are required" });
+  }
+
+  try {
+    const requestRef = db.collection("followRequests").doc(`${senderId}_${receiverId}`);
+    const requestDoc = await requestRef.get();
+
+    if (requestDoc.exists) {
+      return res.status(400).json({ error: "Follow request already sent" });
+    }
+
+    await requestRef.set({
+      senderId,
+      receiverId,
+      status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ message: "Follow request sent successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 //  Start Server
 const PORT = process.env.PORT || 5000;

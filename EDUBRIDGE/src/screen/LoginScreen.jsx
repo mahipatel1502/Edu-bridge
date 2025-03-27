@@ -35,7 +35,7 @@ const LoginScreen = () => {
     }
   
     try {
-      const response = await fetch("http://192.168.32.135:5000/login", { // Replace with your machine's IP
+      const response = await fetch("http://192.168.31.34:5000/login", { // Replace with your machine's IP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase(), password }),
@@ -99,7 +99,7 @@ const LoginScreen = () => {
 
         </View>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("ForgotpasswordScreen")}>
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
 
