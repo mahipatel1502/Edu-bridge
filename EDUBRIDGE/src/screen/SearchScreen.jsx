@@ -24,7 +24,7 @@ const SearchScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://192.168.34.205:5000/search?field=${searchQuery}`);
+      const response = await fetch(`http://192.168.59.118:5000/search?field=${searchQuery}`);
       const data = await response.json();
       setResults(data);
     } catch (error) {

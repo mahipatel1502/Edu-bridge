@@ -3,39 +3,44 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const ProfileScreen = ({ route }) => {
   const { name, field, type, email, experience, bio, id } = route.params;
   const [isFollowing, setIsFollowing] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
   const handleFollowRequest = async () => {
-  try {
-    const userId = await AsyncStorage.getItem("userId"); // ✅ Get logged-in user's ID
+    const senderEmail = await AsyncStorage.getItem("email"); // Get sender's email from AsyncStorage
+    console.log("Stored Sender Email:", senderEmail);
 
-    if (!userId) {
-      console.error("User ID not found. Please log in.");
+    if (!senderEmail) {
+      alert("Email not found. Please log in.");
       return;
     }
 
-    const response = await fetch("http://192.168.31.34:5000/follow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mentorId: id, userId }),
-    });
+    try {
+      const response = await fetch("http://192.168.59.118:5000/follow", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ senderEmail, receiverEmail: email }), // Send emails instead of user IDs
+      });
 
-    const result = await response.json();
-    console.log("Follow Response:", result);
+      const data = await response.json();
+      console.log("Follow Response:", data);
 
-    if (response.ok) {
-      setIsFollowing(true);
-      setRequestSent(true);
-    } else {
-      console.error("Server Error:", result.message);
+      if (response.ok) {
+        setRequestSent(true);
+        alert("Follow request sent successfully!");
+      } else {
+        alert(data.error || "Failed to send follow request.");
+      }
+    } catch (error) {
+      console.error("Follow request error:", error);
+      alert("An error occurred. Please try again.");
     }
-  } catch (error) {
-    console.error("Network Error:", error);
-  }
-};
+  };
 
   return (
     <View style={styles.container}>
@@ -53,7 +58,7 @@ const ProfileScreen = ({ route }) => {
         disabled={requestSent}
       >
         <Text style={styles.buttonText}>
-          {isFollowing ? "Following" : "Follow"}
+          {isFollowing ? "Following" : requestSent ? "Request Sent" : "Follow"}
         </Text>
       </TouchableOpacity>
     </View>

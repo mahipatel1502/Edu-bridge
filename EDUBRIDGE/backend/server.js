@@ -416,33 +416,251 @@ app.get("/search", async (req, res) => {
   }
 });
 
-app.post("/follow", async (req, res) => {
-  const { senderId, receiverId } = req.body;
 
-  if (!senderId || !receiverId) {
-    return res.status(400).json({ error: "Sender and Receiver IDs are required" });
+
+app.post("/follow", async (req, res) => {
+  const { senderEmail, receiverEmail } = req.body;
+  console.log("Follow Request Body:", req.body);
+
+  if (!senderEmail || !receiverEmail) {
+    return res.status(400).json({ error: "Sender and receiver email are required." });
   }
 
   try {
-    const requestRef = db.collection("followRequests").doc(`${senderId}_${receiverId}`);
-    const requestDoc = await requestRef.get();
+    const db = admin.firestore();
 
-    if (requestDoc.exists) {
-      return res.status(400).json({ error: "Follow request already sent" });
+    // Find receiver (the user who will receive the request)
+    const receiverSnapshot = await db.collection("users").where("email", "==", receiverEmail).get();
+    if (receiverSnapshot.empty) {
+      return res.status(404).json({ error: "Receiver not found" });
     }
+    const receiverDoc = receiverSnapshot.docs[0];
+    const receiverRef = receiverDoc.ref;
+    const receiverData = receiverDoc.data();
 
-    await requestRef.set({
-      senderId,
-      receiverId,
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // Add sender to receiver's "follow_requests" array
+    const updatedFollowRequests = receiverData.follow_requests
+      ? [...receiverData.follow_requests, senderEmail]
+      : [senderEmail];
 
-    res.json({ message: "Follow request sent successfully" });
+    await receiverRef.update({ follow_requests: updatedFollowRequests });
+
+    res.json({ message: "Follow request sent successfully!" });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Follow Request Server Error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+app.post("/accept-follow", async (req, res) => {
+  const { senderEmail, receiverEmail } = req.body;
+  console.log("Accept Follow Request Body:", req.body);
+
+  if (!senderEmail || !receiverEmail) {
+    return res.status(400).json({ error: "Sender and receiver email are required." });
+  }
+
+  try {
+    const db = admin.firestore();
+
+    // Get receiver (who is accepting the request)
+    const receiverSnapshot = await db.collection("users").where("email", "==", receiverEmail).get();
+    if (receiverSnapshot.empty) {
+      return res.status(404).json({ error: "Receiver not found" });
+    }
+    const receiverDoc = receiverSnapshot.docs[0];
+    const receiverRef = receiverDoc.ref;
+    const receiverData = receiverDoc.data();
+
+    // Get sender (who sent the request)
+    const senderSnapshot = await db.collection("users").where("email", "==", senderEmail).get();
+    if (senderSnapshot.empty) {
+      return res.status(404).json({ error: "Sender not found" });
+    }
+    const senderDoc = senderSnapshot.docs[0];
+    const senderRef = senderDoc.ref;
+    const senderData = senderDoc.data();
+
+    // Merge into "connections"
+    const updatedReceiverConnections = receiverData.connections
+      ? [...new Set([...receiverData.connections, senderEmail])]
+      : [senderEmail];
+
+    const updatedSenderConnections = senderData.connections
+      ? [...new Set([...senderData.connections, receiverEmail])]
+      : [receiverEmail];
+
+    await receiverRef.update({ connections: updatedReceiverConnections });
+    await senderRef.update({ connections: updatedSenderConnections });
+
+    // Remove request from receiver's "follow_requests" array
+    if (receiverData.follow_requests) {
+      const updatedFollowRequests = receiverData.follow_requests.filter(email => email !== senderEmail);
+      await receiverRef.update({ follow_requests: updatedFollowRequests });
+    }
+
+    res.json({ message: "Follow request accepted, connections updated!" });
+
+  } catch (error) {
+    console.error("Accept Follow Request Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/send-message", async (req, res) => {
+  const { senderEmail, receiverEmail, text, messageType = "text" } = req.body;
+
+  if (!senderEmail || !receiverEmail || !text) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  try {
+    const db = admin.firestore();
+
+    // Generate a unique chatId (sorted emails ensure the same ID for both users)
+    const chatId = [senderEmail, receiverEmail].sort().join("_");
+
+    // Reference to the chat document
+    const chatRef = db.collection("chats").doc(chatId);
+
+    // Check if chat exists, otherwise create it
+    const chatDoc = await chatRef.get();
+    if (!chatDoc.exists) {
+      await chatRef.set({ users: [senderEmail, receiverEmail] });
+    }
+
+    // Add message to the messages subcollection
+    const messageData = {
+      sender: senderEmail,
+      text,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      seen: false,
+      messageType,
+    };
+
+    await chatRef.collection("messages").add(messageData);
+
+    res.json({ message: "Message sent successfully!" });
+
+  } catch (error) {
+    console.error("Send Message Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.get("/get-messages", async (req, res) => {
+  const { user1, user2 } = req.query;
+
+  if (!user1 || !user2) {
+    return res.status(400).json({ error: "Both user emails are required." });
+  }
+
+  try {
+    const db = admin.firestore();
+    const chatId = [user1, user2].sort().join("_");
+    const messagesRef = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp", "asc");
+
+    const messagesSnapshot = await messagesRef.get();
+    const messages = messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json(messages);
+  } catch (error) {
+    console.error("Get Messages Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/mark-as-seen", async (req, res) => {
+  const { chatId, messageId } = req.body;
+
+  if (!chatId || !messageId) {
+    return res.status(400).json({ error: "Chat ID and Message ID are required." });
+  }
+
+  try {
+    const db = admin.firestore();
+    const messageRef = db.collection("chats").doc(chatId).collection("messages").doc(messageId);
+
+    await messageRef.update({ seen: true });
+
+    res.json({ message: "Message marked as seen." });
+  } catch (error) {
+    console.error("Mark as Seen Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.get("/user-chats", async (req, res) => {
+  const { userEmail } = req.query;
+
+  if (!userEmail) {
+    return res.status(400).json({ error: "User email is required." });
+  }
+
+  try {
+    const db = admin.firestore();
+    const chatsRef = db.collection("chats").where("users", "array-contains", userEmail);
+    
+    const chatsSnapshot = await chatsRef.get();
+    const chats = chatsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json(chats);
+  } catch (error) {
+    console.error("User Chats Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.get("/get-connections", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    console.log("Fetching connections for:", email);
+
+    // Find user document by email field (not document ID)
+    const usersCollection = db.collection("users");
+    const querySnapshot = await usersCollection.where("email", "==", email).get();
+
+    if (querySnapshot.empty) {
+      console.log("User not found in Firestore:", email);
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get the first matching document (assuming email is unique)
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
+    console.log("User data:", userData);
+
+    const connections = userData.connections || [];
+    console.log("Connections:", connections);
+
+    // Fetch connection details
+    const connectionDetails = await Promise.all(
+      connections.map(async (connEmail) => {
+        const connSnapshot = await usersCollection.where("email", "==", connEmail).get();
+        if (!connSnapshot.empty) {
+          const connDoc = connSnapshot.docs[0];
+          return { email: connEmail, name: connDoc.data().name };
+        }
+        return null;
+      })
+    );
+
+    res.json(connectionDetails.filter((conn) => conn !== null));
+  } catch (error) {
+    console.error("Error fetching connections:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
 //  Start Server
 const PORT = process.env.PORT || 5000;

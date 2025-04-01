@@ -16,6 +16,8 @@ import Role from "./src/screen/Role"
 import Mentor from "./src/screen/Mentor"
 import CurrentStudent from "./src/screen/CurrentStudent";
 import Alumni from "./src/screen/Alumni";
+import Studentlist from "./src/screen/Studentlist";
+import StudentProfile from "./src/screen/StudentProfile";
 const Stack = createNativeStackNavigator();
 
 const App = () => {
@@ -40,7 +42,8 @@ const App = () => {
         <Stack.Screen name="CurrentStudent" component={CurrentStudent} />
         <Stack.Screen name="Alumni" component={Alumni} />
         <Stack.Screen name="Mentor" component={Mentor} />
-
+        <Stack.Screen name="Studentlist" component={Studentlist} />
+        <Stack.Screen name="StudentProfile" component={StudentProfile} />
 
       </Stack.Navigator>
     </NavigationContainer>

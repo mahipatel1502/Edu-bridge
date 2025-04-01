@@ -35,7 +35,7 @@ const LoginScreen = () => {
     }
   
     try {
-      const response = await fetch("http://192.168.34.205:5000/login", { // Replace with your machine's IP
+      const response = await fetch("http://192.168.59.118:5000/login", { // Replace with your machine's IP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase(), password }),
@@ -46,6 +46,8 @@ const LoginScreen = () => {
   
       if (response.ok) {
         await AsyncStorage.setItem("token", data.token);
+        await AsyncStorage.setItem("email", email.toLowerCase()); // Store email
+        console.log("Stored Email in AsyncStorage:", email.toLowerCase()); // Debugging
         navigation.replace("homepage");
       } else {
         alert(data.error || "Login failed. Please try again.");
