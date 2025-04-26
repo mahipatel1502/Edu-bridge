@@ -233,8 +233,6 @@ app.put("/user/update", authenticateToken, async (req, res) => {
 /**
  * Check if Email is Registered
  */
-
-
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(require("./firebase-adminsdk.json")),
@@ -375,38 +373,22 @@ app.post("/reset-password", async (req, res) => {
 
 app.get("/search", async (req, res) => {
   try {
-    const { field } = req.query;
-    if (!field) {
-      return res.status(400).json({ error: "Field is required." });
+    const { name } = req.query;
+    if (!name) {
+      return res.status(400).json({ error: "Name is required." });
     }
 
-    const mentorsRef = db.collection("users").where("userType", "==", "Mentor");
-    const alumniRef = db.collection("users").where("userType", "==", "Alumni");
+    const usersRef = db.collection("users");
+    const snapshot = await usersRef.get();
 
-    // Perform searches using Firestore where() and filter by specialization/department
-    const [mentorsSnap, alumniSnap] = await Promise.all([
-      mentorsRef.get(),
-      alumniRef.get(),
-    ]);
-
-    const mentors = mentorsSnap.docs
-      .map((doc) => doc.data())
-      .filter(
-        (user) =>
-          user.specialization?.toLowerCase().includes(field.toLowerCase()) ||
-          user.department?.toLowerCase().includes(field.toLowerCase())
-      );
-
-    const alumni = alumniSnap.docs
-      .map((doc) => doc.data())
+    const results = snapshot.docs
+      .map((doc) => ({ _id: doc.id, ...doc.data() }))
       .filter((user) =>
-        user.specialization?.toLowerCase().includes(field.toLowerCase())
+        user.name?.toLowerCase().includes(name.toLowerCase())
       );
-
-    const results = [...mentors, ...alumni];
 
     if (results.length === 0) {
-      return res.status(404).json({ message: "No mentors or alumni found." });
+      return res.status(404).json({ message: "No users found." });
     }
 
     res.json(results);
@@ -507,6 +489,28 @@ app.post("/accept-follow", async (req, res) => {
   } catch (error) {
     console.error("Accept Follow Request Error:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/reject-follow", async (req, res) => {
+  const { senderEmail, receiverEmail } = req.body;
+
+  try {
+    // Same as accept but no need to add to followers
+    const receiverDocRef = await db.collection("users").where("email", "==", receiverEmail).get();
+    const receiverDocId = receiverDocRef.docs[0].id;
+    const receiverData = receiverDocRef.docs[0].data();
+
+    const updatedRequests = (receiverData.follow_requests || []).filter(email => email !== senderEmail);
+
+    await db.collection("users").doc(receiverDocId).update({
+      follow_requests: updatedRequests,
+    });
+
+    res.status(200).json({ message: "Follow request rejected" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to reject follow request" });
   }
 });
 
@@ -660,7 +664,92 @@ app.get("/get-connections", async (req, res) => {
   }
 });
 
+// Express Route to fetch notifications for a user
+// Assuming you have 'users' collection where email -> name
+app.get("/notifications", async (req, res) => {
+  const userEmail = req.query.userEmail;
 
+  const userDoc = await db.collection("users").where("email", "==", userEmail).get();
+  if (userDoc.empty) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const userData = userDoc.docs[0].data();
+  const followRequests = userData.follow_requests || [];
+
+  // Get names of all follow_request users
+  const requestsWithName = await Promise.all(
+    followRequests.map(async (email) => {
+      const senderDoc = await db.collection("users").where("email", "==", email).get();
+      if (!senderDoc.empty) {
+        const senderData = senderDoc.docs[0].data();
+        return {
+          senderEmail: email,
+          senderName: senderData.name || "",
+        };
+      } else {
+        return {
+          senderEmail: email,
+          senderName: "",
+        };
+      }
+    })
+  );
+
+  res.json(requestsWithName);
+});
+
+app.get("/check-follow", async (req, res) => {
+  const { senderEmail, receiverEmail } = req.query;
+
+  try {
+    // Find user document by email
+    const usersRef = db.collection("users");
+    const querySnapshot = await usersRef.where("email", "==", senderEmail).get();
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ isFollowing: false, message: "Sender not found" });
+    }
+
+    // Assuming email is unique, so get first doc
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
+
+    const connections = userData.connections || [];
+
+    const isFollowing = connections.includes(receiverEmail);
+
+    res.json({ isFollowing });
+  } catch (error) {
+    console.error("Error checking follow:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/check-request", async (req, res) => {
+  const { senderEmail, receiverEmail } = req.query;
+
+  try {
+    const usersRef = db.collection("users");
+    const querySnapshot = await usersRef.where("email", "==", receiverEmail).get();
+
+    if (querySnapshot.empty) {
+      return res.status(404).json({ isRequested: false, message: "Receiver not found" });
+    }
+
+    const receiverDoc = querySnapshot.docs[0];
+    const receiverData = receiverDoc.data();
+
+    const followRequests = receiverData.follow_requests || [];
+
+    const isRequested = followRequests.includes(senderEmail);
+
+    res.json({ isRequested });
+  } catch (error) {
+    console.error("Error checking request:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 //  Start Server
 const PORT = process.env.PORT || 5000;

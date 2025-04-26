@@ -11,20 +11,20 @@ import {
 
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
-import { useNavigation } from "@react-navigation/native"; // Import navigation hook
+import { useNavigation } from "@react-navigation/native";
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation(); // Get navigation object
+  const navigation = useNavigation();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-
+  
     setLoading(true);
     try {
-      const response = await fetch(`http://192.168.59.118:5000/search?field=${searchQuery}`);
+      const response = await fetch(`http://192.168.31.34:5000/search?name=${searchQuery}`);
       const data = await response.json();
       setResults(data);
     } catch (error) {
@@ -41,7 +41,7 @@ const SearchScreen = () => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Enter field of interest..."
+          placeholder="Enter name..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -59,7 +59,7 @@ const SearchScreen = () => {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.resultCard}
-              onPress={() => navigation.navigate("Profile", item)} // Navigate to ProfileScreen
+              onPress={() => navigation.navigate("Profile", item)}
             >
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.field}>{item.field} ({item.type})</Text>
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: fonts.SemiBold,
     color: colors.primary,
     textAlign: "center",
@@ -90,27 +90,26 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: colors.secondary,
-    borderRadius: 100,
-    paddingHorizontal: 20,
+    borderColor: colors.gray,
+    borderRadius: 50,
+    paddingHorizontal: 16,
     alignItems: "center",
-    paddingVertical: 2,
-    marginBottom: 15,
+    marginBottom: 20,
+    backgroundColor: colors.lightGray,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    fontFamily: fonts.Light,
+    fontFamily: fonts.Regular,
     color: colors.primary,
+    paddingVertical: 10,
   },
   searchButton: {
     backgroundColor: colors.primary,
-    borderRadius: 100,
-    paddingVertical: 5,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 50,
+    marginLeft: 10,
   },
   searchText: {
     color: colors.white,
@@ -118,32 +117,34 @@ const styles = StyleSheet.create({
     fontFamily: fonts.SemiBold,
   },
   resultCard: {
-    backgroundColor: colors.grayLight,
-    padding: 15,
-    marginVertical: 5,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: colors.lightGray,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.gray,
   },
   name: {
-    fontSize: 18,
-    fontFamily: fonts.Bold,
+    fontSize: 17,
+    fontFamily: fonts.Medium,
     color: colors.primary,
+    marginBottom: 4,
   },
   field: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: fonts.Regular,
     color: colors.secondary,
   },
+  type: {
+    fontFamily: fonts.Light,
+    color: colors.gray,
+  },
   noResults: {
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 30,
     fontSize: 16,
     fontFamily: fonts.Regular,
     color: colors.secondary,
   },
 });
-

@@ -1,17 +1,30 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ProfileScreen = ({ route }) => {
-  const { name, field, type, email, experience, bio, id } = route.params;
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+  const {
+    name,
+    field,
+    type,
+    email,
+    experience,
+    currentSem,
+    graduationYear,
+    designation,
+  } = route.params;
 
-  const handleFollowRequest = async () => {
-    const senderEmail = await AsyncStorage.getItem("email"); // Get sender's email from AsyncStorage
-    console.log("Stored Sender Email:", senderEmail);
+  const [status, setStatus] = useState("follow"); 
+  // "follow", "requested", "connected"
+
+  useEffect(() => {
+    checkFollowStatus();
+  }, []);
+
+  const checkFollowStatus = async () => {
+    const senderEmail = await AsyncStorage.getItem("email");
 
     if (!senderEmail) {
       alert("Email not found. Please log in.");
@@ -19,91 +32,157 @@ const ProfileScreen = ({ route }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.59.118:5000/follow", {
+      // First, check if already connected
+      const followResponse = await fetch(`http://192.168.31.34:5000/check-follow?senderEmail=${senderEmail}&receiverEmail=${email}`);
+      const followData = await followResponse.json();
+
+      if (followResponse.ok && followData.isFollowing) {
+        setStatus("connected");
+        return;
+      }
+
+      // If not connected, check if request is pending
+      const requestResponse = await fetch(`http://192.168.31.34:5000/check-request?senderEmail=${senderEmail}&receiverEmail=${email}`);
+      const requestData = await requestResponse.json();
+
+      if (requestResponse.ok && requestData.isRequested) {
+        setStatus("requested");
+      }
+    } catch (error) {
+      console.error("Check follow/request status error:", error);
+    }
+  };
+
+  const handleFollowRequest = async () => {
+    const senderEmail = await AsyncStorage.getItem("email");
+
+    if (!senderEmail) {
+      alert("Email not found. Please log in.");
+      return;
+    }
+
+    try {
+      console.log("Sending follow request...");
+      const response = await fetch("http://192.168.31.34:5000/follow", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ senderEmail, receiverEmail: email }), // Send emails instead of user IDs
+        body: JSON.stringify({ senderEmail, receiverEmail: email }),
       });
 
       const data = await response.json();
-      console.log("Follow Response:", data);
 
       if (response.ok) {
-        setRequestSent(true);
+        setStatus("requested");
         alert("Follow request sent successfully!");
       } else {
+        console.error("Error response from server:", data);
         alert(data.error || "Failed to send follow request.");
       }
     } catch (error) {
       console.error("Follow request error:", error);
-      alert("An error occurred. Please try again.");
+      alert("An error occurred. Please check your connection and try again.");
+    }
+  };
+
+  const renderButton = () => {
+    if (status === "connected") {
+      return (
+        <View style={styles.connectedButton}>
+          <Text style={styles.buttonText}>Connected</Text>
+        </View>
+      );
+    } else if (status === "requested") {
+      return (
+        <View style={styles.requestedButton}>
+          <Text style={styles.buttonText}>Request Sent</Text>
+        </View>
+      );
+    } else {
+      return (
+        <TouchableOpacity style={styles.followButton} onPress={handleFollowRequest}>
+          <Text style={styles.buttonText}>Follow</Text>
+        </TouchableOpacity>
+      );
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.name}>{name}</Text>
-      <Text style={styles.detail}>
-        {field} ({type})
+      <Text style={styles.roleType}>
+        {type || "User"} {field ? `(${field})` : ""}
       </Text>
-      <Text style={styles.detail}>Experience: {experience}</Text>
-      <Text style={styles.detail}>Email: {email}</Text>
-      <Text style={styles.bio}>{bio}</Text>
 
-      <TouchableOpacity
-        style={isFollowing ? styles.followingButton : styles.followButton}
-        onPress={handleFollowRequest}
-        disabled={requestSent}
-      >
-        <Text style={styles.buttonText}>
-          {isFollowing ? "Following" : requestSent ? "Request Sent" : "Follow"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+      {type === "Student" && currentSem && (
+        <Text style={styles.detail}>Current Semester: {currentSem}</Text>
+      )}
+
+      {type === "Alumni" && graduationYear && (
+        <Text style={styles.detail}>Graduation Year: {graduationYear}</Text>
+      )}
+
+      {type === "Mentor" && designation && (
+        <Text style={styles.detail}>Designation: {designation}</Text>
+      )}
+
+      {experience && <Text style={styles.detail}>Experience: {experience}</Text>}
+      <Text style={styles.detail}>Email: {email}</Text>
+
+      {/* Button */}
+      {renderButton()}
+    </ScrollView>
   );
 };
 
-export default ProfileScreen;
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
+    alignItems: "flex-start",
     backgroundColor: colors.white,
   },
   name: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: fonts.Bold,
-    marginBottom: 10,
     color: colors.primary,
+    marginBottom: 5,
+  },
+  roleType: {
+    fontSize: 18,
+    fontFamily: fonts.Medium,
+    color: colors.secondary,
+    marginBottom: 15,
   },
   detail: {
-    fontSize: 18,
-    fontFamily: fonts.Regular,
-    marginBottom: 5,
-    color: colors.primary,
-  },
-  bio: {
-    marginTop: 10,
     fontSize: 16,
     fontFamily: fonts.Regular,
-    color: colors.secondary,
+    color: colors.primary,
+    marginBottom: 6,
   },
   followButton: {
     backgroundColor: colors.primary,
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 20,
-    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 25,
+    alignSelf: "center",
   },
-  followingButton: {
+  requestedButton: {
     backgroundColor: colors.secondary,
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 20,
-    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 25,
+    alignSelf: "center",
+  },
+  connectedButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 25,
+    alignSelf: "center",
   },
   buttonText: {
     color: colors.white,
@@ -111,3 +190,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.SemiBold,
   },
 });
+
+export default ProfileScreen;

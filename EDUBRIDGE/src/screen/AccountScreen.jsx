@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Store user session
+import React, { useEffect, useState, useCallback } from "react";
+import { 
+  View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator 
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
 
@@ -11,48 +13,48 @@ const AccountScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token"); // Get stored JWT token
-
-        if (!token) {
-          Alert.alert("Session Expired", "Please log in again.");
-          navigation.replace("LOGIN");
-          return;
-        }
-
-        // Fetch user data from the backend
-        const response = await fetch("http://192.168.13.200:5000/users", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch user data.");
-        }
-
-        setUserData(result);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        Alert.alert("Error", error.message);
-      } finally {
-        setLoading(false);
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Session Expired", "Please log in again.");
+        navigation.replace("LOGIN");
+        return;
       }
-    };
 
-    fetchUserData();
-  }, []);
+      const response = await fetch("http://192.168.31.34:5000/user", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data.");
+      }
+
+      const result = await response.json();
+      setUserData(result);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("token"); // Clear user session
-      navigation.replace("LOGIN"); // Navigate to login screen
+      await AsyncStorage.removeItem("token");
+      navigation.replace("LOGIN");
     } catch (error) {
       Alert.alert("Error", "Failed to logout. Please try again.");
     }
@@ -77,9 +79,7 @@ const AccountScreen = () => {
 
   return (
     <View style={styles.container}>
-
       <Ionicons name="person-circle-outline" size={100} color={colors.primary} style={styles.icon} />
-
       <Text style={styles.userName}>{userData.name}</Text>
       <Text style={styles.userEmail}>{userData.email}</Text>
 
@@ -90,7 +90,6 @@ const AccountScreen = () => {
             <Text style={styles.detailText}>Semester: {userData.semester}</Text>
           </>
         )}
-
         {userData.userType === "Mentor" && (
           <>
             <Text style={styles.detailText}>Department: {userData.department}</Text>
@@ -98,7 +97,6 @@ const AccountScreen = () => {
             <Text style={styles.detailText}>Specialization: {userData.specialization}</Text>
           </>
         )}
-
         {userData.userType === "Alumni" && (
           <>
             <Text style={styles.detailText}>Graduation Year: {userData.graduationYear}</Text>
@@ -106,10 +104,19 @@ const AccountScreen = () => {
             <Text style={styles.detailText}>Specialization: {userData.specialization}</Text>
           </>
         )}
+
+        {/* ✅ Added Connections Count */}
+        <Text style={styles.detailText}>
+          Connections: {userData.connections ? userData.connections.length : 0}
+        </Text>
       </View>
-      <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate("EditProfile", { userData })}>
-  <Text style={styles.editButtonText}>Edit Profile</Text>
-</TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.editButton} 
+        onPress={() => navigation.navigate("EditProfile", { userData })}>
+        <Text style={styles.editButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
@@ -119,6 +126,7 @@ const AccountScreen = () => {
 
 export default AccountScreen;
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -188,5 +196,5 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 18,
     fontFamily: fonts.SemiBold,
-  },  
+  },
 });
