@@ -33,7 +33,7 @@ const ProfileScreen = ({ route }) => {
 
     try {
       // First, check if already connected
-      const followResponse = await fetch(`http://192.168.31.34:5000/check-follow?senderEmail=${senderEmail}&receiverEmail=${email}`);
+      const followResponse = await fetch(`http://192.168.12.36:5000/check-follow?senderEmail=${senderEmail}&receiverEmail=${email}`);
       const followData = await followResponse.json();
 
       if (followResponse.ok && followData.isFollowing) {
@@ -42,7 +42,7 @@ const ProfileScreen = ({ route }) => {
       }
 
       // If not connected, check if request is pending
-      const requestResponse = await fetch(`http://192.168.31.34:5000/check-request?senderEmail=${senderEmail}&receiverEmail=${email}`);
+      const requestResponse = await fetch(`http://192.168.12.36:5000/check-request?senderEmail=${senderEmail}&receiverEmail=${email}`);
       const requestData = await requestResponse.json();
 
       if (requestResponse.ok && requestData.isRequested) {
@@ -63,7 +63,7 @@ const ProfileScreen = ({ route }) => {
 
     try {
       console.log("Sending follow request...");
-      const response = await fetch("http://192.168.31.34:5000/follow", {
+      const response = await fetch("http://192.168.12.36:5000/follow", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

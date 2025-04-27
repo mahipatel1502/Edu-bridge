@@ -23,7 +23,7 @@ const AccountScreen = () => {
         return;
       }
 
-      const response = await fetch("http://192.168.31.34:5000/user", {
+      const response = await fetch("http://192.168.12.36:5000/user", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

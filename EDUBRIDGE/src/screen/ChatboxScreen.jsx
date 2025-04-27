@@ -33,7 +33,7 @@ const ChatboxScreen = () => {
 
   const fetchConnections = async (email) => {
     try {
-      const response = await fetch(`http://192.168.31.34:5000/get-connections?email=${email}`);
+      const response = await fetch(`http://192.168.12.36:5000/get-connections?email=${email}`);
       const data = await response.json();
       setConnections(data);
     } catch (error) {
@@ -44,7 +44,7 @@ const ChatboxScreen = () => {
   const fetchMessages = async (user1, user2) => {
     try {
       const response = await fetch(
-        `http://192.168.31.34:5000/get-messages?user1=${user1}&user2=${user2}`
+        `http://192.168.12.36:5000/get-messages?user1=${user1}&user2=${user2}`
       );
       const data = await response.json();
       setMessages(data);
@@ -57,7 +57,7 @@ const ChatboxScreen = () => {
     if (!messageText.trim()) return;
 
     try {
-      const response = await fetch("http://192.168.31.34:5000/send-message", {
+      const response = await fetch("http://192.168.12.36:5000/send-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

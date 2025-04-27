@@ -35,7 +35,7 @@ const LoginScreen = () => {
     }
   
     try {
-      const response = await fetch("http://192.168.31.34:5000/login", { // Replace with your machine's IP
+      const response = await fetch("http://192.168.12.36:5000/login", { // Replace with your machine's IP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase(), password }),

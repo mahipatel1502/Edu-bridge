@@ -24,7 +24,7 @@ const SearchScreen = () => {
   
     setLoading(true);
     try {
-      const response = await fetch(`http://192.168.31.34:5000/search?name=${searchQuery}`);
+      const response = await fetch(`http://192.168.12.36:5000/search?name=${searchQuery}`);
       const data = await response.json();
       setResults(data);
     } catch (error) {
