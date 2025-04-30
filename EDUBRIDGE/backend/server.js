@@ -55,34 +55,47 @@ app.post("/signup", async (req, res) => {
       userType,
       branch,
       semester,
-      department,
+      department, // Department for students will also be passed
       designation,
       specialization,
       graduationYear,
       currentJob,
     } = req.body;
 
+    // Validate required fields
     if (!name || !email || !password || !userType) {
       return res.status(400).json({ error: "All fields are required." });
+    }
+
+    // Check if the email is in the approved_students collection
+    const approvedStudentRef = db.collection("approved_students").doc(email);
+    const approvedStudentDoc = await approvedStudentRef.get();
+
+    if (!approvedStudentDoc.exists) {
+      return res
+        .status(403)
+        .json({ error: "Signup restricted. Email not found in approved students." });
     }
 
     // Create user in Firebase Authentication
     const userRecord = await auth.createUser({
       email,
-      password, // Firebase handles password hashing
+      password,
       displayName: name,
     });
 
-    // Prepare user data object
+    // Prepare user data to store in Firestore
     let userData = {
       name,
       email,
       userType,
+      department, // Store the department name here for all user types
     };
 
     if (userType === "Student") {
       userData.branch = branch || null;
       userData.semester = semester || null;
+      userData.department = department || null; // Ensure department is stored for students
     } else if (userType === "Mentor") {
       userData.department = department || null;
       userData.designation = designation || null;
@@ -93,22 +106,23 @@ app.post("/signup", async (req, res) => {
       userData.specialization = specialization || null;
     }
 
-    // Remove undefined values from userData
+    // Remove undefined fields
     Object.keys(userData).forEach(
       (key) => userData[key] === undefined && delete userData[key]
     );
 
-    // Save user details in Firestore (without password)
+    // Save user data to Firestore under the users collection
     await db.collection("users").doc(userRecord.uid).set(userData, {
-      merge: true, // Ensures partial updates without overwriting
+      merge: true,
     });
 
-    res
-      .status(201)
-      .json({ message: "User registered successfully", uid: userRecord.uid });
+    return res.status(201).json({
+      message: "User registered successfully",
+      uid: userRecord.uid,
+    });
   } catch (error) {
     console.error("Signup Error:", error.message);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 

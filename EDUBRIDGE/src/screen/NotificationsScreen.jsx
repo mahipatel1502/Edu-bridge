@@ -25,7 +25,7 @@ const NotificationsScreen = () => {
 
       try {
         const response = await fetch(
-          `http://192.168.12.36:5000/notifications?userEmail=${userEmail}`
+          `http://192.168.215.205:5000/notifications?userEmail=${userEmail}`
         );
         const data = await response.json();
 
@@ -54,7 +54,7 @@ const NotificationsScreen = () => {
     try {
       const url =
         action === "accept"
-          ? "http://192.168.12.36:5000/accept-follow"
+          ? "http://192.168.215.205:5000/accept-follow"
           : "http://192.168.12.36:5000/reject-follow";
 
       const response = await fetch(url, {

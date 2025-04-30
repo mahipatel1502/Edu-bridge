@@ -8,10 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-
+import { useNavigation } from "@react-navigation/native";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
-import { useNavigation } from "@react-navigation/native";
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,48 +23,58 @@ const SearchScreen = () => {
   
     setLoading(true);
     try {
-      const response = await fetch(`http://192.168.12.36:5000/search?name=${searchQuery}`);
+      const response = await fetch(
+        `http://192.168.215.205:5000/search?name=${searchQuery}`
+      );
       const data = await response.json();
-      setResults(data);
+  
+      setResults(data); // Keep full user objects
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Search Error:", error);
     } finally {
       setLoading(false);
     }
   };
+  
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("StudentProfile", { student: item })}>
+  
+    
+      <Text style={styles.avatar}>👤</Text>
+      <Text style={styles.name}>{item.name}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Find Mentors & Alumni</Text>
+      <Text style={styles.title}>🔍 Find Mentors & Alumni</Text>
 
-      <View style={styles.inputContainer}>
+      <View style={styles.inputWrapper}>
         <TextInput
           style={styles.input}
-          placeholder="Enter name..."
+          placeholder="Search by name..."
+          placeholderTextColor="#888"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
           <Text style={styles.searchText}>Search</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#007BFF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       ) : (
         <FlatList
           data={results}
           keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.resultCard}
-              onPress={() => navigation.navigate("Profile", item)}
-            >
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.field}>{item.field} ({item.type})</Text>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={<Text style={styles.noResults}>No results found.</Text>}
+          renderItem={renderItem}
+          ListEmptyComponent={
+            <Text style={styles.noResults}>No matching users found.</Text>
+          }
         />
       )}
     </View>
@@ -77,74 +86,70 @@ export default SearchScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#F9FAFB",
     padding: 20,
   },
   title: {
     fontSize: 22,
-    fontFamily: fonts.SemiBold,
+    fontFamily: fonts.Bold,
     color: colors.primary,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: "row",
-    borderWidth: 1,
-    borderColor: colors.gray,
+    backgroundColor: "#fff",
     borderRadius: 50,
     paddingHorizontal: 16,
+    paddingVertical: 10,
     alignItems: "center",
+    elevation: 2,
     marginBottom: 20,
-    backgroundColor: colors.lightGray,
   },
   input: {
     flex: 1,
     fontSize: 16,
     fontFamily: fonts.Regular,
-    color: colors.primary,
-    paddingVertical: 10,
+    color: "#333",
   },
-  searchButton: {
+  searchBtn: {
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 18,
-    borderRadius: 50,
+    borderRadius: 30,
     marginLeft: 10,
   },
   searchText: {
-    color: colors.white,
-    fontSize: 15,
+    color: "#fff",
     fontFamily: fonts.SemiBold,
+    fontSize: 15,
   },
-  resultCard: {
-    backgroundColor: colors.lightGray,
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 12,
+    elevation: 1,
+    borderColor: "#eee",
     borderWidth: 1,
-    borderColor: colors.gray,
+  },
+  avatar: {
+    fontSize: 22,
+    marginRight: 12,
   },
   name: {
     fontSize: 17,
     fontFamily: fonts.Medium,
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  field: {
-    fontSize: 15,
-    fontFamily: fonts.Regular,
-    color: colors.secondary,
-  },
-  type: {
-    fontFamily: fonts.Light,
-    color: colors.gray,
+    color: "#222",
   },
   noResults: {
     textAlign: "center",
     marginTop: 30,
     fontSize: 16,
     fontFamily: fonts.Regular,
-    color: colors.secondary,
+    color: "#777",
   },
 });

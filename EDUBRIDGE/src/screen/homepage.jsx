@@ -23,35 +23,52 @@ const Tab = createBottomTabNavigator();
 const Homepage = () => {
   return (
     
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName;
-
-            if (route.name === "Home") {
-              iconName = "home-outline";
-            } else if (route.name === "Search") {
-              iconName = "search-outline";
-            } else if (route.name === "Chatbox") {
-              iconName = "chatbubble-outline";
-            } else if (route.name === "Notifications") {
-              iconName = "notifications-outline";
-            } else if (route.name === "Account") {
-              iconName = "person-outline";
-            }
-
-            return <Icon name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: "#6200EE",
-          tabBarInactiveTintColor: "gray",
-        })}
-      >
-        <Tab.Screen name="Home" component={Homepagee} />
-        <Tab.Screen name="Search" component={SearchScreen} />
-        <Tab.Screen name="Chatbox" component={ChatboxScreen} />
-        <Tab.Screen name="Notifications" component={NotificationsScreen} />
-        <Tab.Screen name="Account" component={AccountScreen} />
-      </Tab.Navigator>
+    <Tab.Navigator
+    screenOptions={({ route }) => ({
+      tabBarIcon: ({ color, size }) => {
+        let iconName;
+  
+        if (route.name === "Home") {
+          iconName = "home-outline";
+        } else if (route.name === "Search") {
+          iconName = "search-outline";
+        } else if (route.name === "Chatbox") {
+          iconName = "chatbubble-outline";
+        } else if (route.name === "Notifications") {
+          iconName = "notifications-outline";
+        } else if (route.name === "Account") {
+          iconName = "person-outline";
+        }
+  
+        return <Icon name={iconName} size={size} color={color} />;
+      },
+      tabBarActiveTintColor: "#6200EE",
+      tabBarInactiveTintColor: "gray",
+  
+      // ✅ Show top bar
+      headerShown: true,
+  
+      // ✅ Dark gray background
+      
+  
+      // ✅ White title text
+      headerTitleStyle: {
+        
+                fontSize: 20,
+        color: colors.primary,
+      },
+  
+      // Optional: make title centered on both iOS/Android
+      
+    })}
+  >
+    <Tab.Screen name="Home" component={Homepagee} />
+    <Tab.Screen name="Search" component={SearchScreen} />
+    <Tab.Screen name="Chatbox" component={ChatboxScreen} />
+    <Tab.Screen name="Notifications" component={NotificationsScreen} />
+    <Tab.Screen name="Account" component={AccountScreen} />
+  </Tab.Navigator>
+  
     
   );
 };
@@ -98,7 +115,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   logoutText: {
-    color: colors.white,
+    color: colors.black,
     fontSize: 18,
     fontFamily: fonts.Bold,
   },

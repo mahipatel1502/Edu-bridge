@@ -4,21 +4,44 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const StudentProfile = ({ route }) => {
     const { student } = route.params;
-    const [isFollowing, setIsFollowing] = useState(false);
+    const [status, setStatus] = useState("follow"); // "follow", "requested", "connected"
     const [senderEmail, setSenderEmail] = useState("");
 
-    // Fetch the logged-in user's email from AsyncStorage
     useEffect(() => {
-        const fetchEmail = async () => {
+        const fetchEmailAndCheckStatus = async () => {
             const email = await AsyncStorage.getItem("email");
             if (email) {
                 setSenderEmail(email);
+                await checkFollowStatus(email);
             }
         };
-        fetchEmail();
+
+        fetchEmailAndCheckStatus();
     }, []);
 
-    // Handle Follow Request
+    const checkFollowStatus = async (senderEmail) => {
+        try {
+            // Check if already connected
+            const followRes = await fetch(`http://192.168.215.205:5000/check-follow?senderEmail=${senderEmail}&receiverEmail=${student.email}`);
+            const followData = await followRes.json();
+
+            if (followRes.ok && followData.isFollowing) {
+                setStatus("connected");
+                return;
+            }
+
+            // Check if follow request was already sent
+            const reqRes = await fetch(`http://192.168.215.205:5000/check-request?senderEmail=${senderEmail}&receiverEmail=${student.email}`);
+            const reqData = await reqRes.json();
+
+            if (reqRes.ok && reqData.isRequested) {
+                setStatus("requested");
+            }
+        } catch (error) {
+            console.error("Error checking follow/request status:", error);
+        }
+    };
+
     const handleFollow = async () => {
         if (!senderEmail) {
             Alert.alert("Error", "Your email is missing. Please log in again.");
@@ -26,7 +49,7 @@ const StudentProfile = ({ route }) => {
         }
 
         try {
-            const response = await fetch("http://192.168.59.118:5000/follow", {
+            const response = await fetch("http://192.168.215.205:5000/follow", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -37,14 +60,39 @@ const StudentProfile = ({ route }) => {
 
             const data = await response.json();
             if (response.ok) {
-                setIsFollowing(true);
-                Alert.alert("Success", data.message);
+                setStatus("requested");
+                Alert.alert("Success", "Follow request sent successfully!");
             } else {
                 Alert.alert("Error", data.error || "Failed to follow.");
             }
         } catch (error) {
             console.error("Follow Request Error:", error);
             Alert.alert("Error", "Network error. Please try again.");
+        }
+    };
+
+    const renderFollowButton = () => {
+        if (status === "connected") {
+            return (
+                <View style={[styles.button, styles.connected]}>
+                    <Text style={styles.buttonText}>Connected</Text>
+                </View>
+            );
+        } else if (status === "requested") {
+            return (
+                <View style={[styles.button, styles.requested]}>
+                    <Text style={styles.buttonText}>Request Sent</Text>
+                </View>
+            );
+        } else {
+            return (
+                <TouchableOpacity
+                    style={[styles.button, styles.notFollowing]}
+                    onPress={handleFollow}
+                >
+                    <Text style={styles.buttonText}>Follow ➕</Text>
+                </TouchableOpacity>
+            );
         }
     };
 
@@ -57,27 +105,19 @@ const StudentProfile = ({ route }) => {
                 <Text style={styles.semester}>📅 <Text style={styles.bold}>Semester:</Text> {student.semester}</Text>
 
                 {/* Follow Button */}
-                <TouchableOpacity
-                    style={[styles.button, isFollowing ? styles.following : styles.notFollowing]}
-                    onPress={handleFollow}
-                    disabled={isFollowing}
-                >
-                    <Text style={styles.buttonText}>
-                        {isFollowing ? "Requested" : "Follow ➕"}
-                    </Text>
-                </TouchableOpacity>
+                {renderFollowButton()}
             </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        justifyContent: "center", 
-        alignItems: "center", 
-        padding: 20, 
-        backgroundColor: "#F4F4F4" 
+    container: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+        backgroundColor: "#F4F4F4",
     },
     card: {
         width: "100%",
@@ -89,32 +129,32 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 5,
-        alignItems: "center"
+        alignItems: "center",
     },
-    heading: { 
-        fontSize: 24, 
-        fontWeight: "bold", 
-        color: "#222", 
-        marginBottom: 15, 
+    heading: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#222",
+        marginBottom: 15,
         textAlign: "center",
-        textTransform: "uppercase"
+        textTransform: "uppercase",
     },
-    info: { 
-        fontSize: 18, 
-        color: "#444", 
-        marginBottom: 10, 
-        textAlign: "center"
+    info: {
+        fontSize: 18,
+        color: "#444",
+        marginBottom: 10,
+        textAlign: "center",
     },
-    semester: { 
-        fontSize: 18, 
-        fontWeight: "bold", 
+    semester: {
+        fontSize: 18,
+        fontWeight: "bold",
         color: "#005A9C",
         marginTop: 10,
-        textAlign: "center"
+        textAlign: "center",
     },
     bold: {
         fontWeight: "bold",
-        color: "#222"
+        color: "#222",
     },
     button: {
         marginTop: 20,
@@ -135,9 +175,12 @@ const styles = StyleSheet.create({
     notFollowing: {
         backgroundColor: "#888",
     },
-    following: {
+    requested: {
         backgroundColor: "#555",
-    }
+    },
+    connected: {
+        backgroundColor: "#006400",
+    },
 });
 
 export default StudentProfile;

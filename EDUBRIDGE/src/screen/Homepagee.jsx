@@ -7,18 +7,25 @@ import { fonts } from "../utils/fonts";
 const Homepagee = () => {
   const navigation = useNavigation();
 
-  // Function to navigate to Role screen with college parameter
   const handleNavigation = (college) => {
     navigation.navigate("Role", { college });
   };
 
   return (
     <View style={styles.container}>
-      {/* CHARUSAT Logo */}
+      {/* CHARUSAT Logo (local image) */}
       <View style={styles.logoContainer}>
-        <Image 
-          source={require("../assets/Charotar_University_of_Science_and_Technology_CHARUSAT_Anand_logo_jpg_eb45ac6cc5.webp")} 
-          style={styles.charusatLogo} 
+        <Image
+          source={require("../assets/Charotar_University_of_Science_and_Technology_CHARUSAT_Anand_logo_jpg_eb45ac6cc5.webp")}
+          style={styles.localLogo}
+        />
+      </View>
+
+      {/* Banner (remote image) */}
+      <View style={styles.bannerContainer}>
+        <Image
+          source={{ uri: "https://i.ytimg.com/vi/fcMqd1jyTgw/maxresdefault.jpg" }}
+          style={styles.bannerImage}
         />
       </View>
 
@@ -60,13 +67,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 40,
   },
-  charusatLogo: {
-    width: 150,
-    height: 150,
+  localLogo: {
+    width: 200,
+    height: 100,
     resizeMode: "contain",
   },
+  bannerContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  bannerImage: {
+    width:"80%",
+    height: 200,
+    resizeMode: "cover",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderTopLeftRadius:20,
+    borderTopRightRadius:20,
+    marginTop: 10,
+    marginLeft: 40,
+    marginRight: 40,
+  },
   spacer: {
-    height: 138,
+    height: 50,
   },
   collegeWrapper: {
     flexDirection: "row",
