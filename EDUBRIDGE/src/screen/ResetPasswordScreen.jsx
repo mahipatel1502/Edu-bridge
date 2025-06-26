@@ -11,7 +11,7 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage for clearing session
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "../utils/colors";
 import { fonts } from "../utils/fonts";
 
@@ -37,15 +37,13 @@ const ResetPasswordScreen = () => {
     }
 
     if (newPassword.length < 8) {
-      Alert.alert(
-        "Password must be at least 8 characters long."
-      );
+      Alert.alert("Error", "Password must be at least 8 characters long.");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.26.199:5000/reset-password", {
+      const response = await fetch("http://192.168.215.205:5000/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, newPassword }),
@@ -55,15 +53,15 @@ const ResetPasswordScreen = () => {
       setLoading(false);
 
       if (response.ok) {
-        // Clear JWT token and user session
-        await AsyncStorage.removeItem("authToken"); // Remove the old token
+        await AsyncStorage.removeItem("authToken");
 
         Alert.alert(
+          "Success",
           "Password reset successfully.",
           [{ text: "OK", onPress: () => navigation.navigate("LOGIN") }]
         );
       } else {
-        Alert.alert("Error", data.error);
+        Alert.alert("Error", data.error || "Something went wrong.");
       }
     } catch (error) {
       setLoading(false);

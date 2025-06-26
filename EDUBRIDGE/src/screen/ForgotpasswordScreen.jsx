@@ -28,7 +28,7 @@ const ForgotPassword = () => {
   
     try {
       console.log("Checking email:", email);
-      const response = await fetch("http://192.168.13.200:5000/check-email", {
+      const response = await fetch("http://192.168.215.205:5000/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -43,7 +43,7 @@ const ForgotPassword = () => {
       }
   
       console.log("Sending OTP...");
-      const otpResponse = await fetch("http://192.168.13.200:5000/send-otp", {
+      const otpResponse = await fetch("http://192.168.215.205:5000/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -54,7 +54,8 @@ const ForgotPassword = () => {
   
       if (otpResponse.ok) {
         Alert.alert("Success", `OTP sent to ${email}`);
-        navigation.navigat("otpScreen");
+        navigation.navigate("otpScreen", { email });
+
       } else {
         Alert.alert("Error", otpData.error);
       }

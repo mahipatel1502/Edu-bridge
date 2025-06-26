@@ -55,19 +55,18 @@ app.post("/signup", async (req, res) => {
       userType,
       branch,
       semester,
-      department, // Department for students will also be passed
+      department,
       designation,
       specialization,
       graduationYear,
       currentJob,
     } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password || !userType) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    // Check if the email is in the approved_students collection
+    // ✅ Check if user is in the approved_students collection
     const approvedStudentRef = db.collection("approved_students").doc(email);
     const approvedStudentDoc = await approvedStudentRef.get();
 
@@ -77,25 +76,23 @@ app.post("/signup", async (req, res) => {
         .json({ error: "Signup restricted. Email not found in approved students." });
     }
 
-    // Create user in Firebase Authentication
+    // ✅ Create user in Firebase Authentication
     const userRecord = await auth.createUser({
       email,
       password,
       displayName: name,
     });
 
-    // Prepare user data to store in Firestore
+    // ✅ Prepare user data
     let userData = {
       name,
       email,
       userType,
-      department, // Store the department name here for all user types
     };
 
     if (userType === "Student") {
       userData.branch = branch || null;
       userData.semester = semester || null;
-      userData.department = department || null; // Ensure department is stored for students
     } else if (userType === "Mentor") {
       userData.department = department || null;
       userData.designation = designation || null;
@@ -106,12 +103,12 @@ app.post("/signup", async (req, res) => {
       userData.specialization = specialization || null;
     }
 
-    // Remove undefined fields
+    // ✅ Remove undefined fields
     Object.keys(userData).forEach(
       (key) => userData[key] === undefined && delete userData[key]
     );
 
-    // Save user data to Firestore under the users collection
+    // ✅ Save to Firestore
     await db.collection("users").doc(userRecord.uid).set(userData, {
       merge: true,
     });
@@ -193,7 +190,7 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: "khyatithakkar723@gmail.com",// Your email
-    pass: "ranylknsthydwise", // Your email password (or app password)
+    pass: "hzmfrvnjahvlsqcj", // Your email password (or app password)
   },
 });
 

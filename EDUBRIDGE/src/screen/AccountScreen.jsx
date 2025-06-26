@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -83,24 +84,24 @@ const AccountScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="person-circle" size={100} color={colors.white} />
+        <Ionicons name="person-circle-outline" size={100} color={colors.primary} />
         <Text style={styles.userName}>{userData.name}</Text>
         <Text style={styles.userEmail}>{userData.email}</Text>
       </View>
 
-      {/* Info Card */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Profile Details</Text>
 
         {userData.userType === "Student" && (
           <>
+            <Text style={styles.detailText}>🏫 Department: {userData.department}</Text>
             <Text style={styles.detailText}>🎓 Branch: {userData.branch}</Text>
             <Text style={styles.detailText}>📘 Semester: {userData.semester}</Text>
           </>
         )}
+
         {userData.userType === "Mentor" && (
           <>
             <Text style={styles.detailText}>🏫 Department: {userData.department}</Text>
@@ -108,6 +109,7 @@ const AccountScreen = () => {
             <Text style={styles.detailText}>📚 Specialization: {userData.specialization}</Text>
           </>
         )}
+
         {userData.userType === "Alumni" && (
           <>
             <Text style={styles.detailText}>🎓 Graduation Year: {userData.graduationYear}</Text>
@@ -121,109 +123,107 @@ const AccountScreen = () => {
         </Text>
       </View>
 
-      {/* Buttons */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("EditProfile", { userData })}
       >
-        <Text style={styles.buttonText}>Edit Profile</Text>
+        <Ionicons name="create-outline" size={18} color={colors.white} />
+        <Text style={styles.buttonText}> Edit Profile</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, styles.logoutButton]}
-        onPress={handleLogout}
-      >
-        <Text style={styles.buttonText}>Logout</Text>
+      <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={18} color={colors.white} />
+        <Text style={styles.buttonText}> Logout</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 export default AccountScreen;
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: "#f8f9fa",
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: fonts.Regular,
     color: colors.secondary,
     marginTop: 10,
   },
   errorText: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: fonts.Regular,
     color: "red",
   },
   header: {
-    width: "100%",
-    backgroundColor: colors.primary,
     alignItems: "center",
     paddingVertical: 30,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
   },
   userName: {
     fontSize: 22,
     fontFamily: fonts.SemiBold,
-    color: colors.white,
+    color: colors.primary,
     marginTop: 10,
   },
   userEmail: {
     fontSize: 14,
     fontFamily: fonts.Regular,
-    color: colors.white,
+    color: colors.secondary,
   },
   card: {
-    width: "90%",
-    backgroundColor: colors.lightGray,
-    borderRadius: 15,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
     padding: 20,
-    marginTop: 20,
-    elevation: 3,
+    marginVertical: 10,
+    // Shadow for both iOS and Android
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
   },
   cardTitle: {
     fontSize: 18,
     fontFamily: fonts.SemiBold,
     color: colors.primary,
-    marginBottom: 10,
-    textAlign: "center",
+    marginBottom: 15,
   },
   detailText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: fonts.Regular,
-    color: colors.primary,
+    color: "#333",
     marginBottom: 8,
   },
   button: {
+    flexDirection: "row",
     backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 30,
-    width: "80%",
+    padding: 14,
+    borderRadius: 25,
+    justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
-    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   logoutButton: {
-    backgroundColor: "#e74c3c",
+    backgroundColor: "#dc3545",
   },
   buttonText: {
-    color: colors.white,
     fontSize: 16,
     fontFamily: fonts.SemiBold,
+    color: colors.white,
+    marginLeft: 8,
   },
 });
